@@ -1,0 +1,18 @@
+-- Run from within the db that to document store procs and functions
+SELECT SCHEMA_NAME(schema_id) AS schema_name
+    ,o.name AS object_name
+    ,o.type_desc
+    ,p.parameter_id
+    ,p.name AS parameter_name
+    ,TYPE_NAME(p.user_type_id) AS parameter_type
+    ,p.max_length
+    ,p.precision
+    ,p.scale
+    ,p.is_output
+FROM sys.objects AS o
+INNER JOIN sys.parameters AS p ON o.object_id = p.object_id
+--WHERE o.object_id = OBJECT_ID('<schema_name.object_name>')  -- include if you would like to document an individual object.
+Where o.name not like 'sp_%'  --- To ignore replication stored procs.
+ORDER BY schema_name, object_name, p.parameter_id;
+GO
+

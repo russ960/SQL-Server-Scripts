@@ -1,0 +1,18 @@
+Instructions for failing over to the secondary server
+
+1.	Disable all scheduled jobs on the Primary Server
+
+2.	On the primary database server,  logon to the master database as a DBA.
+
+3.	Change the “safety mode” of the desired databases to FULL. Run the following commands:
+	Alter database <Database> set partner safety full
+
+4.	Execute the failover. Run the following commands:
+	Alter database <Database> set partner failover
+
+At this point the secondary database will be online and the primary database will be offline. Provided the logins and permissions had been put in place (this is done when the structure is set up) the applications could now be pointed to the secondary database and conect normaly.
+
+5.	Enable standard and Application Jobs on the DR
+
+6.	Change the “safety mode” of the desired databases to OFF. Run the following commands:
+	Alter database <Database> set partner safety off

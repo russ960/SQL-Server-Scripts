@@ -1,0 +1,59 @@
+-- Run from within the appropiate db.
+
+;WITH mismatch AS
+    (
+        SELECT 
+            [Object]    = QUOTENAME(SCHEMA_NAME(o.[schema_id])) 
+                          + '.' + QUOTENAME(o.name),
+            Object_Type = o.type_desc,
+            Column_Name = QUOTENAME(c.name),
+            [Precision] = c.[precision],
+            Scale       = c.scale,
+            Max_Length  = CASE 
+                 WHEN t.name LIKE 'n%char' AND c.max_length <> -1
+                            THEN CONVERT(VARCHAR(12), c.max_length/2)
+                          WHEN c.max_length = -1
+                            THEN 'MAX'
+                            ELSE CONVERT(VARCHAR(12), c.max_length)
+                          END,
+            Data_Type   = t.name,
+            rn          = DENSE_RANK() OVER
+                          (
+                            PARTITION BY c.name
+                            ORDER BY 
+                                 t.name,  c.max_length,
+                                 c.scale, c.[precision]
+                          )
+        FROM
+            sys.columns AS c
+        INNER JOIN
+            sys.objects AS o
+            ON c.[object_id]     = o.[object_id]
+        LEFT OUTER JOIN sys.types AS t
+            ON c.system_type_id  = t.system_type_id
+            AND c.system_type_id = t.user_type_id 
+        WHERE
+            o.is_ms_shipped = 0
+    )
+    SELECT 
+        [Object],
+        Object_Type,
+        Column_Name,
+        Data_Type,
+        Max_Length,
+        [Precision],
+        Scale
+    FROM
+        mismatch AS o
+    WHERE EXISTS
+    (
+        SELECT 1
+            FROM mismatch 
+            WHERE Column_Name = o.Column_Name 
+            AND rn > 1
+    )
+    ORDER BY
+        Column_Name,
+        Max_Length,
+        [Object];
+     
